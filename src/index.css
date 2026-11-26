@@ -1,0 +1,117 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
+  --color-surface: #f7f6f4;
+  --color-panel: #ffffff;
+  --color-ink: #2c2a26;
+  --color-muted: #6b6760;
+  --color-line: #e4e1db;
+  --color-accent: #4a5560;
+  --color-accent-soft: #eef1f3;
+  --color-success: #3d5a4c;
+  --color-success-soft: #e8f0ec;
+  --color-danger: #8f4a4a;
+  --color-danger-soft: #f5e8e8;
+  --color-cash: #3f5f6e;
+  --color-cash-soft: #e7eef1;
+  --color-warning: #92400e;
+  --color-warning-soft: #fef3c7;
+  --color-hero-glow: #dde3e8;
+}
+
+.dark {
+  --color-surface: #121211;
+  --color-panel: #1a1917;
+  --color-ink: #eceae4;
+  --color-muted: #9a968c;
+  --color-line: #2e2c28;
+  --color-accent: #a8b2bc;
+  --color-accent-soft: #242822;
+  --color-success: #8fb59f;
+  --color-success-soft: #1c2a22;
+  --color-danger: #d4a0a0;
+  --color-danger-soft: #2a1c1c;
+  --color-cash: #8fb4c4;
+  --color-cash-soft: #1a252b;
+  --color-warning: #e7c48a;
+  --color-warning-soft: #2a2418;
+  --color-hero-glow: #2a3038;
+}
+
+html {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.down-payment-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent) 0%,
+    var(--color-accent) var(--slider-progress, 0%),
+    var(--color-line) var(--slider-progress, 0%),
+    var(--color-line) 100%
+  );
+  outline: none;
+}
+
+.down-payment-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+
+.down-payment-slider::-moz-range-thumb {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+
+.down-payment-slider::-moz-range-track {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: transparent;
+}
