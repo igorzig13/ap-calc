@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   isContributionAboveLimit,
   MAX_CONTRIBUTION_RATIO,
@@ -42,14 +42,15 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             prefix="R$"
             value={values.propertyPrice}
             onChange={(v) => update('propertyPrice', v)}
-            step={1000}
+            step={10_000}
             min={0}
+            steppers
           />
           <Field
             label="Inflação imobiliária"
             suffix="% a.a."
             value={values.realEstateInflation}
-            onChange={(v) => update('realEstateInflation', Math.max(0, v))}
+            onChange={(v) => update('realEstateInflation', v)}
             step={1}
             min={0}
             steppers
@@ -67,14 +68,15 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             prefix="R$"
             value={values.initialSalary}
             onChange={(v) => update('initialSalary', v)}
-            step={100}
+            step={500}
             min={0}
+            steppers
           />
           <Field
             label="Crescimento salarial"
             suffix="% a.a."
             value={values.salaryGrowth}
-            onChange={(v) => update('salaryGrowth', Math.max(0, v))}
+            onChange={(v) => update('salaryGrowth', v)}
             step={1}
             min={0}
             steppers
@@ -84,9 +86,10 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             prefix="R$"
             hint="Investimentos já acumulados hoje"
             value={values.priorWealth}
-            onChange={(v) => update('priorWealth', Math.max(0, v))}
-            step={1000}
+            onChange={(v) => update('priorWealth', v)}
+            step={1_000}
             min={0}
+            steppers
           />
           <Field
             label="Aporte mensal"
@@ -94,8 +97,9 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             hint="Valor investido todo mês"
             value={values.monthlyContribution}
             onChange={(v) => update('monthlyContribution', v)}
-            step={50}
+            step={100}
             min={0}
+            steppers
             warning={
               contributionWarning
                 ? `O aporte supera ${(MAX_CONTRIBUTION_RATIO * 100).toFixed(0)}% do salário (recomendado até ${formatBRL(maxContribution)}).`
@@ -106,7 +110,7 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             label="Rendimento dos investimentos"
             suffix="% a.a."
             value={values.investmentReturn}
-            onChange={(v) => update('investmentReturn', Math.max(0, v))}
+            onChange={(v) => update('investmentReturn', v)}
             step={1}
             min={0}
             steppers
@@ -198,12 +202,12 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             label="Prazo"
             suffix="meses"
             value={values.financingTerm}
-            onChange={(v) =>
-              update('financingTerm', Math.min(420, Math.max(12, Math.round(v))))
-            }
-            step={12}
+            onChange={(v) => update('financingTerm', Math.round(v))}
+            step={60}
             min={12}
             max={420}
+            steppers
+            integer
           />
           <Field
             label="Juros do financiamento"
@@ -212,6 +216,7 @@ export function CalculatorForm({ values, onChange }: CalculatorFormProps) {
             onChange={(v) => update('financingRate', v)}
             step={0.1}
             min={0}
+            steppers
           />
         </div>
       </fieldset>
@@ -231,6 +236,7 @@ function Field({
   step = 1,
   warning,
   steppers = false,
+  integer = false,
 }: {
   label: string
   hint?: string
@@ -243,13 +249,71 @@ function Field({
   step?: number
   warning?: string
   steppers?: boolean
+  integer?: boolean
 }) {
+  const [draft, setDraft] = useState<string | null>(null)
+
   function clamp(next: number) {
     let result = next
     if (min !== undefined) result = Math.max(min, result)
     if (max !== undefined) result = Math.min(max, result)
     return result
   }
+
+  function roundToStepPrecision(next: number) {
+    const decimals = String(step).includes('.')
+      ? (String(step).split('.')[1]?.length ?? 0)
+      : 0
+    if (decimals === 0) return integer ? Math.round(next) : next
+    const factor = 10 ** decimals
+    return Math.round(next * factor) / factor
+  }
+
+  function commitRaw(raw: string) {
+    const trimmed = raw.trim()
+    if (trimmed === '' || trimmed === '-' || trimmed === '.' || trimmed === '-.') {
+      onChange(clamp(min ?? 0))
+      setDraft(null)
+      return
+    }
+
+    const parsed = Number(trimmed)
+    if (Number.isNaN(parsed)) {
+      setDraft(null)
+      return
+    }
+
+    onChange(clamp(roundToStepPrecision(parsed)))
+    setDraft(null)
+  }
+
+  function handleInputChange(raw: string) {
+    setDraft(raw)
+
+    // Enquanto digita, não aplica min/max — só atualiza se for número válido
+    const trimmed = raw.trim()
+    if (
+      trimmed === '' ||
+      trimmed === '-' ||
+      trimmed === '.' ||
+      trimmed === '-.' ||
+      trimmed.endsWith('.')
+    ) {
+      return
+    }
+
+    const parsed = Number(trimmed)
+    if (Number.isNaN(parsed)) return
+    onChange(roundToStepPrecision(parsed))
+  }
+
+  function nudge(direction: 1 | -1) {
+    const next = clamp(roundToStepPrecision(value + direction * step))
+    setDraft(null)
+    onChange(next)
+  }
+
+  const displayValue = draft !== null ? draft : String(value)
 
   const rightPadding = steppers
     ? suffix
@@ -274,11 +338,19 @@ function Field({
         )}
         <input
           type="number"
-          value={value}
+          value={displayValue}
           min={min}
           max={max}
           step={step}
-          onChange={(e) => onChange(clamp(Number(e.target.value) || 0))}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onBlur={() => {
+            if (draft !== null) commitRaw(draft)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur()
+            }
+          }}
           className={`w-full rounded-lg border bg-panel px-3 py-2.5 text-sm text-ink outline-none transition focus:ring-2 ${
             warning
               ? 'border-warning/40 focus:border-warning/50 focus:ring-warning/10'
@@ -299,7 +371,7 @@ function Field({
             <button
               type="button"
               aria-label="Aumentar"
-              onClick={() => onChange(clamp(value + step))}
+              onClick={() => nudge(1)}
               className="flex h-4 w-6 items-center justify-center rounded-t text-muted transition hover:bg-surface hover:text-ink"
             >
               <StepperIcon direction="up" />
@@ -307,7 +379,7 @@ function Field({
             <button
               type="button"
               aria-label="Diminuir"
-              onClick={() => onChange(clamp(value - step))}
+              onClick={() => nudge(-1)}
               className="flex h-4 w-6 items-center justify-center rounded-b text-muted transition hover:bg-surface hover:text-ink"
             >
               <StepperIcon direction="down" />
